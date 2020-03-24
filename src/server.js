@@ -1,0 +1,188 @@
+'use strict';
+
+const express = require('express');
+const axios = require('axios');
+const bodyParser = require('body-parser');
+
+const app = express();
+const server = require('http').createServer(app);
+const io = require('socket.io')(server);
+
+const addresses = require('./buildHosts').addresses;
+
+// Server configuration
+let baseIndexServer = process.env.BASE_INDEX || 0;
+let id = getId(addresses[baseIndexServer].port);
+let leaderId = getId(Math.max(...calculateLeader()));
+let status = 'ok';
+let isCoordinator = true;
+let isUP = true;
+let check = 'on';
+
+// Servers instance
+const servers = new Map();
+Object.keys(addresses).forEach(key => {
+    if (Number(key) !== baseIndexServer) {
+        servers.set(getId(addresses[key].port), `http://${addresses[key].host}:${addresses[key].port}`)
+    }
+});
+
+// App
+app.use(bodyParser.json());
+app.use(
+    bodyParser.urlencoded({
+        extended: true
+    })
+);
+
+// Routes
+app.get('/', function (req, res) {
+    res.render('index', {id, idLeader: leaderId});
+});
+
+app.post('/ping', (req, res) => {
+    handleRequest(req);
+    sendMessage(`${Date.now().toLocaleString()} - ${req.body.id} it's pinging me`);
+    res.status(200).send({serverStatus: status});
+});
+
+app.post('/isCoordinator', (req, res) => {
+    handleRequest(req);
+    res.status(200).send({isCoor: isCoordinator});
+});
+
+app.post('/election', (req, res) => {
+    handleRequest(req);
+    if (!isUP) {
+        sendMessage(`${Date.now().toLocaleString()} - ${req.body.id} fallen leader`);
+        res.status(200).send({accept: 'no'});
+    } else {
+        sendMessage(`${Date.now().toLocaleString()} - ${req.body.id} asked me if I am down, and I am not , I win, that is bullying`);
+        res.status(200).send({accept: 'ok'});
+    }
+});
+
+app.post('/putCoordinator', (req, res) => {
+    handleRequest(req);
+    startElection();
+    sendMessage(`${Date.now().toLocaleString()} - ${req.body.id} put me as coordinator`);
+    res.status(200).send('ok');
+});
+
+app.post('/newLeader', async (req, res) => {
+    handleRequest(req);
+    leaderId = req.body.idLeader;
+    res.status(200).send('ok');
+    io.emit('newLeader', leaderId);
+    await checkLeader();
+});
+
+const checkLeader = async _ => {
+    if (!isUP) {
+        check = 'off';
+    }
+    if (id !== leaderId && check !== 'off') {
+        try {
+            let response = await axios.post(servers.get(leaderId) + '/ping', { id });
+            if (response.data.serverStatus === 'ok'){
+                sendMessage(`${Date.now().toLocaleString()} - Ping to leader server ${leaderId}: ${response.data.serverStatus}`);
+                setTimeout(checkLeader, 12000);
+            } else {
+                sendMessage(`${Date.now().toLocaleString()} - Server leader  ${leaderId} down: ${response.data.serverStatus} New leader needed`);
+                checkCoordinator();
+            }
+        }
+        catch (error) {
+            sendMessage(`${Date.now().toLocaleString()} - Server leader  ${leaderId} down: New leader needed`);
+            checkCoordinator();
+            console.log(error);
+        }
+    }
+};
+
+const checkCoordinator = _ => {
+    servers.forEach(async (value, key) => {
+        try {
+            let response = await axios.post(value + '/isCoordinator', {id});
+            console.log(response.data.isCoor);
+            if (response.data.isCoor === 'true') {
+                sendMessage(`${Date.now().toLocaleString()} - ${key} is doing the election`);
+                return true;
+            } else {
+                sendMessage(`${Date.now().toLocaleString()} - ${key} is not doing the election`);
+            }
+        }
+        catch (error) {
+            console.log(error);
+        }
+    });
+
+    if (isUP) {
+        startElection();
+    }
+};
+
+const startElection = _ => {
+    let someoneAnswer = false;
+    isCoordinator = true;
+    sendMessage(`${Date.now().toLocaleString()} - Coordinating the election`);
+    servers.forEach(async (value, key) => {
+        if (key > id) {
+            try {
+                let response = await axios.post(value + '/election', {id});
+                if (response.data.accept === 'ok' && !someoneAnswer) {
+                    someoneAnswer = true;
+                    isCoordinator = false;
+                    await axios.post(value + '/putCoordinator', {id});
+                }
+            }
+            catch (error) {
+                console.log(error);
+            }
+        }
+    });
+
+    setTimeout(() => {
+        if (!someoneAnswer) {
+            leaderId = id;
+            sendMessage(`${Date.now().toLocaleString()} - I am leader`);
+            io.emit('newLeader', leaderId);
+            servers.forEach(async (value) => await axios.post(value + '/newLeader', {idLeader: leaderId}))
+        }
+    }, 5000);
+};
+
+function getId(server) {
+    return server - 10000;
+}
+
+function calculateLeader() {
+    let ports = [];
+    addresses.forEach(server => {
+        ports.push(server.port)
+    });
+    return ports;
+}
+
+function sendMessage(message) {
+    console.log(`Message: ${message}`);
+    io.emit('status', message);
+}
+
+function handleRequest(req) {
+    console.log(`${Date.now().toLocaleString()} - Handle request in ${req.method}: ${req.url} by ${req.hostname}`);
+}
+
+io.on('connection', (socket) => {
+    socket.on('kill', () => {
+        sendMessage(`${Date.now().toLocaleString()} - Not a leader anymore`);
+        status = 'fail';
+        isUP = false;
+        isCoordinator = false;
+    });
+});
+
+server.listen(addresses[baseIndexServer].port, addresses[baseIndexServer].host);
+console.log(`App listening on http://${addresses[baseIndexServer].host}:${addresses[baseIndexServer].port}`);
+
+setTimeout(checkLeader, 3000);

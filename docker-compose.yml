@@ -1,0 +1,33 @@
+version: '3'
+services:
+  node_app_1:
+    build: .
+    ports:
+      - 10000:80
+    environment:
+      - BASE_INDEX=0
+    network_mode: host
+
+  node_app_2:
+    build: .
+    ports:
+      - 10001:80
+    environment:
+      - BASE_INDEX=1
+    network_mode: host
+
+  node_app_3:
+    build: .
+    ports:
+      - 10002:80
+    environment:
+      - BASE_INDEX=2
+    network_mode: host
+
+  node_app_4:
+    build: .
+    ports:
+      - 10003:80
+    environment:
+      - BASE_INDEX=3
+    network_mode: host

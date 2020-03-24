@@ -1,0 +1,21 @@
+doctype html
+html(lang='en')
+    head
+        title Bully
+        link(href='https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css', rel='stylesheet')
+        link(href='../css/stylesheet.css', rel='stylesheet')
+        script(src='/socket.io/socket.io.js')
+        script(src='../js/script.js')
+    body
+        div.row
+            div#container.text-center
+                h3#myId= 'Hi! I`m the ' + id + ' server'
+                h3#leader= 'The actual leader Id is ' + idLeader
+        div.row
+            div.main.col-6.text-center
+                if id === idLeader
+                    button(type='button' class='btn btn-outline-primary btn-lg' onclick='killing()') Kill my self!
+                    p I am the leader!
+            div.main.col-5
+                ul(class='list-group' id='log-list')
+                    li.list-group-item.active Server Logs

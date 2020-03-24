@@ -3,6 +3,7 @@
 const express = require('express');
 const axios = require('axios');
 const bodyParser = require('body-parser');
+const path = require('path');
 
 const app = express();
 const server = require('http').createServer(app);
@@ -34,6 +35,10 @@ app.use(
         extended: true
     })
 );
+app.engine('pug', require('pug').__express);
+app.set('views', path.join(__dirname, '../public/views'));
+app.set('view engine', 'pug');
+app.use(express.static(path.join(__dirname, '../public')));
 
 // Routes
 app.get('/', function (req, res) {

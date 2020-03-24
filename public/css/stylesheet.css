@@ -1,0 +1,51 @@
+*, *::after, *::before {
+    margin: 0;
+    padding: 0;
+}
+
+html, body {
+    max-height: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+}
+
+.main {
+    margin: 40px 0;
+}
+
+#container {
+    margin-bottom: 40px;
+    padding: 70px 0;
+    background-color: #007bff;
+    color: rgba(255, 255, 255, 0.7);
+    width: 100%;
+    border-bottom-left-radius: 50%;
+    border-bottom-right-radius: 50%;
+}
+
+#myId {
+    font-size: 42px;
+}
+
+#leader {
+    font-style: italic;
+    font-size: 20px;
+}
+
+.main > button {
+    width: 180px;
+    margin-bottom: 20px;
+}
+
+.main > p {
+    margin-bottom: 40px;
+    color: #6c757d;
+    font-size: 14px;
+}
+
+#log-list {
+    max-height: 500px;
+    margin-bottom: 10px;
+    overflow: scroll;
+    -webkit-overflow-scrolling: touch;
+}

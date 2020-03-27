@@ -47,7 +47,7 @@ app.get('/', function (req, res) {
 
 app.post('/ping', (req, res) => {
     handleRequest(req);
-    sendMessage(`${Date.now().toLocaleString()} - ${req.body.id} it's pinging me`);
+    sendMessage(`${new Date().toLocaleString()} - server ${req.body.id} it's pinging me`);
     res.status(200).send({serverStatus: status});
 });
 
@@ -59,10 +59,10 @@ app.post('/isCoordinator', (req, res) => {
 app.post('/election', (req, res) => {
     handleRequest(req);
     if (!isUP) {
-        sendMessage(`${Date.now().toLocaleString()} - ${req.body.id} fallen leader`);
+        sendMessage(`${new Date().toLocaleString()} - server ${req.body.id} fallen leader`);
         res.status(200).send({accept: 'no'});
     } else {
-        sendMessage(`${Date.now().toLocaleString()} - ${req.body.id} asked me if I am down, and I am not , I win, that is bullying`);
+        sendMessage(`${new Date().toLocaleString()} - server ${req.body.id} asked me if I am down, and I am not , I win, that is bullying`);
         res.status(200).send({accept: 'ok'});
     }
 });
@@ -70,7 +70,7 @@ app.post('/election', (req, res) => {
 app.post('/putCoordinator', (req, res) => {
     handleRequest(req);
     startElection();
-    sendMessage(`${Date.now().toLocaleString()} - ${req.body.id} put me as coordinator`);
+    sendMessage(`${new Date().toLocaleString()} - server ${req.body.id} put me as coordinator`);
     res.status(200).send('ok');
 });
 
@@ -89,16 +89,17 @@ const checkLeader = async _ => {
     if (id !== leaderId && check !== 'off') {
         try {
             let response = await axios.post(servers.get(leaderId) + '/ping', { id });
+
             if (response.data.serverStatus === 'ok'){
-                sendMessage(`${Date.now().toLocaleString()} - Ping to leader server ${leaderId}: ${response.data.serverStatus}`);
+                sendMessage(`${new Date().toLocaleString()} - Ping to leader server ${leaderId}: ${response.data.serverStatus}`);
                 setTimeout(checkLeader, 12000);
             } else {
-                sendMessage(`${Date.now().toLocaleString()} - Server leader  ${leaderId} down: ${response.data.serverStatus} New leader needed`);
+                sendMessage(`${new Date().toLocaleString()} - Server leader  ${leaderId} down: ${response.data.serverStatus} New leader needed`);
                 checkCoordinator();
             }
         }
         catch (error) {
-            sendMessage(`${Date.now().toLocaleString()} - Server leader  ${leaderId} down: New leader needed`);
+            sendMessage(`${new Date().toLocaleString()} - Server leader  ${leaderId} down: New leader needed`);
             checkCoordinator();
             console.log(error);
         }
@@ -109,12 +110,12 @@ const checkCoordinator = _ => {
     servers.forEach(async (value, key) => {
         try {
             let response = await axios.post(value + '/isCoordinator', {id});
-            console.log(response.data.isCoor);
+
             if (response.data.isCoor === 'true') {
-                sendMessage(`${Date.now().toLocaleString()} - ${key} is doing the election`);
+                sendMessage(`${new Date().toLocaleString()} - server ${key} is doing the election`);
                 return true;
             } else {
-                sendMessage(`${Date.now().toLocaleString()} - ${key} is not doing the election`);
+                sendMessage(`${new Date().toLocaleString()} - server ${key} is not doing the election`);
             }
         }
         catch (error) {
@@ -130,7 +131,8 @@ const checkCoordinator = _ => {
 const startElection = _ => {
     let someoneAnswer = false;
     isCoordinator = true;
-    sendMessage(`${Date.now().toLocaleString()} - Coordinating the election`);
+    sendMessage(`${new Date().toLocaleString()} - Coordinating the election`);
+
     servers.forEach(async (value, key) => {
         if (key > id) {
             try {
@@ -150,7 +152,7 @@ const startElection = _ => {
     setTimeout(() => {
         if (!someoneAnswer) {
             leaderId = id;
-            sendMessage(`${Date.now().toLocaleString()} - I am leader`);
+            sendMessage(`${new Date().toLocaleString()} - I am leader`);
             io.emit('newLeader', leaderId);
             servers.forEach(async (value) => await axios.post(value + '/newLeader', {idLeader: leaderId}))
         }
@@ -175,12 +177,12 @@ function sendMessage(message) {
 }
 
 function handleRequest(req) {
-    console.log(`${Date.now().toLocaleString()} - Handle request in ${req.method}: ${req.url} by ${req.hostname}`);
+    console.log(`${new Date().toLocaleString()} - Handle request in ${req.method}: ${req.url} by ${req.hostname}`);
 }
 
 io.on('connection', (socket) => {
     socket.on('kill', () => {
-        sendMessage(`${Date.now().toLocaleString()} - Not a leader anymore`);
+        sendMessage(`${new Date().toLocaleString()} - Not a leader anymore`);
         status = 'fail';
         isUP = false;
         isCoordinator = false;

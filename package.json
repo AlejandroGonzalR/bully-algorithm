@@ -1,5 +1,6 @@
 {
   "name": "bully-algorithm",
+  "description": "Implementation of the bully algorithm for dynamically electing a leader from a group of distributed computer nodes",
   "version": "1.0.0",
   "scripts": {
     "start": "node src/server.js"
@@ -10,5 +11,12 @@
     "express": "^4.17.1",
     "socket.io": "^2.3.0",
     "pug": "^2.0.4"
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/AlejandroGonzalR/bully-algorithm.git"
+  },
+  "keywords": [],
+  "author": "Alejandro González Rodríguez",
+  "license": "MIT"
 }

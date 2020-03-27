@@ -1,4 +1,4 @@
-# Implementation of Berkeley Algorithm
+# Implementation of Bully Algorithm
 
 The bully algorithm is a method for dynamically electing a coordinator or leader from a group of distributed computer processes. This algorithm applies to system where every process can send a message to every other process in the system.
 
